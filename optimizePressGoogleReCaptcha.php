@@ -28,7 +28,7 @@ class OptimizePress_GoogleReCaptcha
 
     protected $requestIsValid = -1;
 
-    protected $formNum = 1;
+    // protected $formNum = 1;
 
     /**
      * Registering actions and filters
@@ -70,13 +70,13 @@ class OptimizePress_GoogleReCaptcha
 
         echo '
             <div class="op-g-recaptcha"
-              id="op-g-recaptcha-' . $this->formNum . '"
+              id="op-g-recaptcha-' . uniqid() . '"
               data-sitekey="' . $this->googleReCaptchaSiteKey . '"
               data-size="invisible">
             </div>
         ';
 
-        $this->formNum++;
+        // $this->formNum++;
     }
 
     /**
