@@ -15,9 +15,8 @@
     }
 
     ?>
-    <p><?php _e('Sign-up for invisible <a href="https://www.google.com/recaptcha/" target="_blank">Google ReCaptcha</a> and enter site key & secret in order to apply it to all opt-in forms.', 'op-google-recaptcha'); ?>
-    <p><?php _e('Make sure you clean up <a href="' . admin_url('admin.php?page=optimizepress-support#cache') . '">OptimizePress Cache</a> after setting up Google ReCaptcha keys.', 'op-google-recaptcha'); ?>
-    <form method="post">
+    <p><?php _e('Sign-up for <b>invisible <a href="https://www.google.com/recaptcha/" target="_blank">Google ReCaptcha</a></b> and enter site key & secret in order to apply it to all opt-in forms.', 'op-google-recaptcha'); ?>
+    <form method="post" id="op_google_recaptcha_admin_form">
     <?php wp_nonce_field('op-google-recaptcha', '_wpnonce_op-google-recaptcha'); ?>
     <table class="form-table">
         <tr class="form-required">
@@ -36,7 +35,35 @@
                 <input name="op_google_recaptcha_secret" type="text" size="100" value="<?php echo get_option("op_google_recaptcha_secret"); ?>">
             </td>
         </tr>
+        <tr class="form">
+            <th scope="row">
+                <?php _e('Hide ReCaptcha Logo ', 'op-google-recaptcha'); ?>
+            </th>
+            <td>
+                <?php
+                    $recaptcha_logo = get_option("op_google_recaptcha_hide_logo");
+                    $recaptcha_logo_checked = '';
+                    if (isset($recaptcha_logo) && !empty($recaptcha_logo)) {
+                        $recaptcha_logo_checked = ' checked="checked"';
+                    }
+                ?>
+                <input name="op_google_recaptcha_hide_logo" type="checkbox" <?php echo $recaptcha_logo_checked; ?>>
+                <p>
+                    <em>Make sure you test your site before you hide the logo, because error messages related to your Google ReCaptcha API key are shown in Google ReCaptcha logo container.</em>
+                </p>
+            </td>
+        </tr>
     </table>
     <?php submit_button(__('Save', 'op-google-recaptcha'), 'primary', 'google_recaptcha'); ?>
+    <script>
+        ;(function ($) {
+            $('#op_google_recaptcha_admin_form').on('submit', function () {
+                op_show_loading();
+                OptimizePress.ajax.clearElementsCache().then(function(response) {
+                    $(this).submit();
+                });
+            });
+        }(opjq));
+    </script>
     </form>
 </div>

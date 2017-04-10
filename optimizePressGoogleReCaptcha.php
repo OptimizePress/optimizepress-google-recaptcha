@@ -3,7 +3,7 @@
 Plugin Name: OptimizePress Google ReCaptcha
 Plugin URI: http://www.optimizepress.com
 Description: Attaches invisible google ReCaptcha after submit button for optin form which needed to be checked in order to proceed
-Version: 1.0.0
+Version: 1.1.0
 Author: OptimizePress
 Author URI: http://www.optimizepress.com
 */
@@ -20,7 +20,7 @@ class OptimizePress_GoogleReCaptcha
      */
     public $pluginSlug = 'op-google-recaptcha';
 
-    protected static $version = '1.0.0';
+    protected static $version = '1.1.0';
 
     protected $googleReCaptchaSiteKey = false;
 
@@ -40,54 +40,67 @@ class OptimizePress_GoogleReCaptcha
 
         add_action('init', array($this, 'googleReCaptchaScript'));
         add_action('op_after_optin_submit_button', array($this, 'renderGoogleReCaptcha'));
-        //add_action('op_after_optin_signup_form', array($this, 'renderGoogleReCaptchaX'));
 
-
-        add_action('template_redirect', array($this, 'processOptinForm'), 19);
+        // Adding to this action to be able to stop
+        // the form from submitting if captcha
+        // doesn't pass the validation
+        add_action('op_pre_template_include', array($this, 'processOptinForm'), 1);
     }
 
     /**
      * Checks Google ReCaptcha verification on server side before regular process opt-in form from OP
      */
-    public function processOptinForm(){
+    public function processOptinForm()
+    {
         global $wp;
 
-        if ($wp->request === 'process-optin-form') {
-            if ($this->isInvisibleReCaptchaTokenValid() === false){
-                die("Token invalid");
-            }
+        if ($this->googleReCaptchaSiteKey === false || $this->googleReCaptchaSecret === false){
+            return;
+        }
+
+        if (isset($_POST['op_optin_form']) && $_POST['op_optin_form'] === 'Y'
+            && $this->isInvisibleReCaptchaTokenValid() === false) {
+            wp_die("Invalid recaptcha token. Verification failed.");
         }
     }
 
     /**
      * Adds Google ReCaptcha element to opt-in forms
      */
-    public function renderGoogleReCaptcha(){
-
+    public function renderGoogleReCaptcha()
+    {
         if ($this->googleReCaptchaSiteKey === false || $this->googleReCaptchaSecret === false){
             return;
         }
 
+        $hide_logo = get_option('op_google_recaptcha_hide_logo');
+        $hide_logo_string = '';
+
+        if (isset($hide_logo) && !empty($hide_logo)) {
+            $hide_logo_string = '<style>.grecaptcha-badge { display: none; }</style>';
+        }
+
+        // TODO: When element is cloned, uniqid is cloned as well, which breaks the captcha
         echo '
             <div class="op-g-recaptcha"
               id="op-g-recaptcha-' . uniqid() . '"
               data-sitekey="' . $this->googleReCaptchaSiteKey . '"
+              data-badge="inline"
               data-size="invisible">
-            </div>
+            </div>' . $hide_logo_string . '
         ';
-
-        // $this->formNum++;
     }
 
     /**
      * Enqueue Google ReCaptcha scripts
      */
-    public function googleReCaptchaScript(){
+    public function googleReCaptchaScript()
+    {
         if ($this->googleReCaptchaSiteKey === false || $this->googleReCaptchaSecret === false){
             return;
         }
 
-        wp_enqueue_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js?onload=opGoogleReCaptcha&render=explicit', array(), false, true);
+        wp_enqueue_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js', array(), false, true);
         wp_enqueue_script('op-recaptcha', plugin_dir_url(__FILE__) . 'js/op_recaptcha.js', array('jquery'), false, true);
     }
 
@@ -126,6 +139,13 @@ class OptimizePress_GoogleReCaptcha
                 delete_option('op_google_recaptcha_secret');
             }
 
+            // Save Hide ReCaptcha Logo option
+            if (isset($_POST['op_google_recaptcha_hide_logo'])) {
+                update_option('op_google_recaptcha_hide_logo', true);
+            } else {
+                delete_option('op_google_recaptcha_hide_logo');
+            }
+
             /*
              * Setting success message
              */
@@ -160,7 +180,8 @@ class OptimizePress_GoogleReCaptcha
      *
      * @return bool
      */
-    protected function checkIfLEPage(){
+    protected function checkIfLEPage()
+    {
         $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') ? 'https://' : 'http://';
         $checkIfLEPage = get_post_meta( url_to_postid( $protocol.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'] ), '_optimizepress_pagebuilder', true );
 
@@ -185,12 +206,18 @@ class OptimizePress_GoogleReCaptcha
      *
      * @return bool
      */
-    public function isInvisibleReCaptchaTokenValid(){
-        if (!function_exists("op_get_client_ip_env")){
+    public function isInvisibleReCaptchaTokenValid()
+    {
+
+        $this->googleReCaptchaSiteKey = get_option('op_google_recaptcha_sitekey');
+        $this->googleReCaptchaSecret = get_option('op_google_recaptcha_secret');
+        $this->requestIsValid = true;
+
+        if (! function_exists( "op_get_client_ip_env" )) {
             return false;
         }
 
-        if(empty($_POST['g-recaptcha-response'])){
+        if (empty( $_POST['g-recaptcha-response'] )) {
             return false;
         }
 
@@ -205,11 +232,16 @@ class OptimizePress_GoogleReCaptcha
             )
         );
 
-        if(empty($response) || !( $json = json_decode( $response ) ) || empty($json->success)){
-            return $this->requestIsValid = false;
+        if (empty( $response )) {
+            $this->requestIsValid = false;
         }
 
-        return $this->requestIsValid = true;
+        $json = json_decode( $response );
+        if (gettype( $json ) !== 'object' || empty( $json->success )) {
+            $this->requestIsValid = false;
+        }
+
+        return $this->requestIsValid;
     }
 
     /**response
