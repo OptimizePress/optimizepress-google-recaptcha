@@ -3,7 +3,7 @@
 Plugin Name: OptimizePress Google ReCaptcha
 Plugin URI: http://www.optimizepress.com
 Description: Attaches invisible google ReCaptcha after submit button for optin form which needed to be checked in order to proceed
-Version: 1.1.1
+Version: 1.1.2
 Author: OptimizePress
 Author URI: http://www.optimizepress.com
 */
@@ -20,7 +20,7 @@ class OptimizePress_GoogleReCaptcha
      */
     public $pluginSlug = 'op-google-recaptcha';
 
-    protected static $version = '1.1.1';
+    protected static $version = '1.1.2';
 
     protected $googleReCaptchaSiteKey = false;
 

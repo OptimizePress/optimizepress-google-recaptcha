@@ -16,6 +16,7 @@
 
     window.opGoogleReCaptcha = function() {
         var recaptchas;
+        var recaptchaIds = [];
         var i = 0;
 
         // We're not using the captcha with callback function,
@@ -31,6 +32,11 @@
         recaptchas = document.querySelectorAll('.op-g-recaptcha');
 
         for (i = 0; i < recaptchas.length; i++) {
+            if (recaptchaIds.indexOf(recaptchas[i].id) > -1) {
+                recaptchas[i].setAttribute('id', recaptchas[i].id + 'xxx' + i);
+            }
+            recaptchaIds.push(recaptchas[i].id);
+
             grecaptcha.render(recaptchas[i].id, {
                 sitekey: recaptchas[i].getAttribute('data-sitekey'),
                 size: recaptchas[i].getAttribute('data-size'),
