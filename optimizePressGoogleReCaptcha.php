@@ -3,7 +3,7 @@
 Plugin Name: OptimizePress Google ReCaptcha
 Plugin URI: http://www.optimizepress.com
 Description: Attaches invisible google ReCaptcha after submit button for optin form which needed to be checked in order to proceed
-Version: 1.1.0
+Version: 1.1.1
 Author: OptimizePress
 Author URI: http://www.optimizepress.com
 */
@@ -20,7 +20,7 @@ class OptimizePress_GoogleReCaptcha
      */
     public $pluginSlug = 'op-google-recaptcha';
 
-    protected static $version = '1.1.0';
+    protected static $version = '1.1.1';
 
     protected $googleReCaptchaSiteKey = false;
 
@@ -41,10 +41,29 @@ class OptimizePress_GoogleReCaptcha
         add_action('init', array($this, 'googleReCaptchaScript'));
         add_action('op_after_optin_submit_button', array($this, 'renderGoogleReCaptcha'));
 
-        // Adding to this action to be able to stop
-        // the form from submitting if captcha
-        // doesn't pass the validation
+        // Adding to this actions to be able to stop the
+        // form from submitting if captcha doesn't
+        // pass the validation
+        //
+        // First one is for email data,
+        // second for integrations
         add_action('op_pre_template_include', array($this, 'processOptinForm'), 1);
+        add_action('template_redirect', array($this, 'processOptinFormIntegration'), 19);
+    }
+
+    /**
+     * Checks Google ReCaptcha verification on server side before regular process opt-in form from OP
+     */
+    public function processOptinFormIntegration()
+    {
+        global $wp;
+        if ($wp->request === 'process-optin-form') {
+            if (isset($_POST['provider']) && $_POST['provider'] !== 'email') {
+                if ($this->isInvisibleReCaptchaTokenValid() === false) {
+                    wp_die("Invalid recaptcha token. Verification failed.");
+                }
+            }
+        }
     }
 
     /**
@@ -52,15 +71,10 @@ class OptimizePress_GoogleReCaptcha
      */
     public function processOptinForm()
     {
-        global $wp;
-
-        if ($this->googleReCaptchaSiteKey === false || $this->googleReCaptchaSecret === false){
-            return;
-        }
-
-        if (isset($_POST['op_optin_form']) && $_POST['op_optin_form'] === 'Y'
-            && $this->isInvisibleReCaptchaTokenValid() === false) {
-            wp_die("Invalid recaptcha token. Verification failed.");
+        if (isset($_POST['op_optin_form']) && $_POST['op_optin_form'] === 'Y') {
+            if ($this->isInvisibleReCaptchaTokenValid() === false) {
+                wp_die("Invalid recaptcha token. Verification failed.");
+            }
         }
     }
 
