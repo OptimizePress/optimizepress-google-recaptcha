@@ -33,7 +33,7 @@
 
         for (i = 0; i < recaptchas.length; i++) {
             if (recaptchaIds.indexOf(recaptchas[i].id) > -1) {
-                recaptchas[i].setAttribute('id', recaptchas[i].id + 'xxx' + i);
+                recaptchas[i].setAttribute('id', recaptchas[i].id + '_' + i);
             }
             recaptchaIds.push(recaptchas[i].id);
 
@@ -64,7 +64,7 @@
         e.preventDefault();
         window.opGoogleReCaptchaLastForm = e.target;
         // grecaptcha.execute(window.opGoogleReCaptchaLastForm.id);
-        grecaptcha.execute(e.target.id);
+        grecaptcha.execute();
     }
 
     // Initialize ReCaptcha
